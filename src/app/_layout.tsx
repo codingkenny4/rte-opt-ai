@@ -1,18 +1,40 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { Slot } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { View } from 'react-native';
+import '../global.css';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import * as Localization from 'expo-localization';
+import en from '../locales/en.json';
+import ko from '../locales/ko.json';
 
-SplashScreen.preventAutoHideAsync();
+// Initialize translations
+const resources = {
+  en: en,
+  ko: ko,
+};
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+const systemLocale = Localization.getLocales()?.[0]?.languageCode ?? 'en';
+const defaultLang = resources.hasOwnProperty(systemLocale) ? systemLocale : 'en';
+
+i18n
+  .use(initReactI18next)
+  .init({
+    resources,
+    lng: defaultLang,
+    fallbackLng: 'en',
+    compatibilityJSON: 'v4',
+    interpolation: {
+      escapeValue: false,
+    },
+  });
+
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <View className="flex-1 bg-slate-950">
+      <StatusBar style="light" />
+      <Slot />
+    </View>
   );
 }

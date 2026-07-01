@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "app_init",
-    "slug": "app_init",
+    "name": "Route Optimization",
+    "slug": "rte-opt-ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

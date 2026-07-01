@@ -1,0 +1,27 @@
+{
+  "translation": {
+    "title": "Route Optimization",
+    "startPoint": "Start Point",
+    "endPoint": "End Point",
+    "addWaypoint": "Add Waypoint",
+    "optimizeRoute": "Optimize Route",
+    "optimizing": "Optimizing...",
+    "language": "Language",
+    "english": "English",
+    "korean": "Korean",
+    "enterAddress": "Enter address...",
+    "enterStartPoint": "Enter starting point...",
+    "enterEndPoint": "Enter ending point...",
+    "enterWaypoint": "Enter waypoint {{index}}...",
+    "distance": "Total Distance",
+    "duration": "Total Duration",
+    "optimizeSuccess": "Route optimized successfully!",
+    "optimizeError": "Route optimization failed. Please check your inputs.",
+    "geocodeError": "Could not find coordinates for this address.",
+    "minWaypointsError": "Please enter start and end points first.",
+    "clearAll": "Clear All",
+    "stops": "Stops",
+    "optimizedRoute": "Optimized Route Summary",
+    "noRouteYet": "Add locations and tap Optimize Route to draw the path."
+  }
+}
