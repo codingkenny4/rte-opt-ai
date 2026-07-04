@@ -22,6 +22,9 @@
     "clearAll": "Clear All",
     "stops": "Stops",
     "optimizedRoute": "Optimized Route Summary",
-    "noRouteYet": "Add locations and tap Optimize Route to draw the path."
+    "noRouteYet": "Add locations and tap Optimize Route to draw the path.",
+    "savedAddresses": "Saved Addresses",
+    "useAddress": "Use",
+    "removeAddress": "Remove"
   }
 }

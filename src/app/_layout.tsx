@@ -1,6 +1,7 @@
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '../global.css';
 
 import i18n from 'i18next';
@@ -32,9 +33,11 @@ i18n
 
 export default function RootLayout() {
   return (
-    <View className="flex-1 bg-slate-950">
-      <StatusBar style="light" />
-      <Slot />
-    </View>
+    <SafeAreaProvider>
+      <View className="flex-1 bg-slate-950">
+        <StatusBar style="light" />
+        <Slot />
+      </View>
+    </SafeAreaProvider>
   );
 }

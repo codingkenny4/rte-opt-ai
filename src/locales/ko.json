@@ -22,6 +22,9 @@
     "clearAll": "전체 초기화",
     "stops": "경유지 목록",
     "optimizedRoute": "최적화 경로 요약",
-    "noRouteYet": "위치를 추가하고 경로 최적화를 탭하여 경로를 표시하세요."
+    "noRouteYet": "위치를 추가하고 경로 최적화를 탭하여 경로를 표시하세요.",
+    "savedAddresses": "저장된 주소",
+    "useAddress": "사용",
+    "removeAddress": "삭제"
   }
 }
