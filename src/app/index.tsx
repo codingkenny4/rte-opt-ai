@@ -4,6 +4,7 @@ import { WaypointPanel } from "@/components/WaypointPanel";
 import {
   geocodeAddress,
   optimizeRoute,
+  validateAddressExists,
   Waypoint,
 } from "@/services/tmapService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -128,10 +129,9 @@ export default function HomeScreen() {
     const normalizedAddress = startAddress.trim();
     if (!normalizedAddress) return;
 
-    addSavedAddress(normalizedAddress);
-
     try {
       const res = await geocodeAddress(normalizedAddress);
+      addSavedAddress(normalizedAddress);
       setStartCoords({
         name: res.address,
         latitude: res.latitude,
@@ -149,10 +149,9 @@ export default function HomeScreen() {
     const normalizedAddress = endAddress.trim();
     if (!normalizedAddress) return;
 
-    addSavedAddress(normalizedAddress);
-
     try {
       const res = await geocodeAddress(normalizedAddress);
+      addSavedAddress(normalizedAddress);
       setEndCoords({
         name: res.address,
         latitude: res.latitude,
@@ -171,10 +170,9 @@ export default function HomeScreen() {
     const normalizedAddress = wp?.address?.trim();
     if (!wp || !normalizedAddress) return;
 
-    addSavedAddress(normalizedAddress);
-
     try {
       const res = await geocodeAddress(normalizedAddress);
+      addSavedAddress(normalizedAddress);
       setWaypoints((prev) =>
         prev.map((w) =>
           w.id === id
@@ -231,6 +229,37 @@ export default function HomeScreen() {
     setOptimizeResult(null);
   };
 
+  const validateAddressesForOptimization = async (): Promise<boolean> => {
+    const normalizedStart = startAddress.trim();
+    const normalizedEnd = endAddress.trim();
+
+    if (!normalizedStart || !normalizedEnd) {
+      showAlert(t("title"), t("minWaypointsError"));
+      return false;
+    }
+
+    const targets = [
+      { label: t("startPoint"), value: normalizedStart },
+      { label: t("endPoint"), value: normalizedEnd },
+      ...waypoints
+        .filter((wp) => wp.address.trim())
+        .map((wp) => ({
+          label: `${t("addWaypoint")} ${wp.id}`,
+          value: wp.address.trim(),
+        })),
+    ];
+
+    for (const target of targets) {
+      const exists = await validateAddressExists(target.value);
+      if (!exists) {
+        showAlert(t("title"), `${target.label}: ${t("invalidAddressError")}`);
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   // Trigger optimization with auto-geocoding of unresolved targets
   const handleOptimize = async () => {
     const normalizedStart = startAddress.trim();
@@ -241,13 +270,10 @@ export default function HomeScreen() {
       return;
     }
 
-    addSavedAddress(normalizedStart);
-    addSavedAddress(normalizedEnd);
-    waypoints.forEach((wp) => {
-      if (wp.address.trim()) {
-        addSavedAddress(wp.address);
-      }
-    });
+    const canOptimize = await validateAddressesForOptimization();
+    if (!canOptimize) {
+      return;
+    }
 
     setIsOptimizing(true);
     try {

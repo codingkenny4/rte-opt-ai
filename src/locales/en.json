@@ -18,6 +18,7 @@
     "optimizeSuccess": "Route optimized successfully!",
     "optimizeError": "Route optimization failed. Please check your inputs.",
     "geocodeError": "Could not find coordinates for this address.",
+    "invalidAddressError": "Please enter a real address that can be located on the map.",
     "minWaypointsError": "Please enter start and end points first.",
     "clearAll": "Clear All",
     "stops": "Stops",

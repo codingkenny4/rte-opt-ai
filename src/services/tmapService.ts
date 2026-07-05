@@ -1,14 +1,16 @@
-import axios from 'axios';
+import axios from "axios";
 
-const TMAP_API_BASE = 'https://apis.openapi.sk.com/tmap';
+const TMAP_API_BASE = "https://apis.openapi.sk.com/tmap";
 
 // Retrieve the API Key from environment variables
 const getApiKey = (): string => {
   const apiKey = process.env.EXPO_PUBLIC_TMAP_API_KEY;
   if (!apiKey) {
-    console.error('EXPO_PUBLIC_TMAP_API_KEY is not defined in the environment variables.');
+    console.error(
+      "EXPO_PUBLIC_TMAP_API_KEY is not defined in the environment variables.",
+    );
   }
-  return apiKey || '';
+  return apiKey || "";
 };
 
 export interface GeocodeResult {
@@ -33,33 +35,52 @@ export interface RouteOptimizationResult {
 }
 
 /**
+ * Validate whether an address can be geocoded by Tmap.
+ */
+export const validateAddressExists = async (
+  address: string,
+): Promise<boolean> => {
+  const normalizedAddress = address?.trim();
+  if (!normalizedAddress) return false;
+
+  try {
+    await geocodeAddress(normalizedAddress);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Geocode a full address string using Tmap's fullAddrGeo API.
  * Ref: GET https://apis.openapi.sk.com/tmap/geo/fullAddrGeo?version=1
  */
-export const geocodeAddress = async (address: string): Promise<GeocodeResult> => {
+export const geocodeAddress = async (
+  address: string,
+): Promise<GeocodeResult> => {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error('API Key missing');
+    throw new Error("API Key missing");
   }
 
   try {
     const response = await axios.get(`${TMAP_API_BASE}/geo/fullAddrGeo`, {
       params: {
         version: 1,
-        format: 'json',
+        format: "json",
         fullAddr: address,
-        coordType: 'WGS84GEO',
-        addressFlag: 'F00',
+        coordType: "WGS84GEO",
+        addressFlag: "F00",
       },
       headers: {
         appKey: apiKey,
-        Accept: 'application/json',
+        Accept: "application/json",
       },
     });
 
     const coordInfo = response.data?.coordinateInfo;
     if (!coordInfo) {
-      throw new Error('No coordinateInfo found in response');
+      throw new Error("No coordinateInfo found in response");
     }
 
     // Checking various potential response structures for coordinate fields to ensure resilience
@@ -72,7 +93,7 @@ export const geocodeAddress = async (address: string): Promise<GeocodeResult> =>
     }
 
     if (!latStr || !lonStr) {
-      throw new Error('Coordinates missing in API response');
+      throw new Error("Coordinates missing in API response");
     }
 
     return {
@@ -81,11 +102,14 @@ export const geocodeAddress = async (address: string): Promise<GeocodeResult> =>
       longitude: parseFloat(lonStr),
     };
   } catch (error: any) {
-    console.error('Error in geocodeAddress:', error?.response?.data || error.message);
+    console.error(
+      "Error in geocodeAddress:",
+      error?.response?.data || error.message,
+    );
     throw new Error(
-      error?.response?.data?.error?.message || 
-      error.message || 
-      'Geocoding request failed'
+      error?.response?.data?.error?.message ||
+        error.message ||
+        "Geocoding request failed",
     );
   }
 };
@@ -97,11 +121,11 @@ export const geocodeAddress = async (address: string): Promise<GeocodeResult> =>
 export const optimizeRoute = async (
   start: { name: string; latitude: number; longitude: number },
   end: { name: string; latitude: number; longitude: number },
-  waypoints: Waypoint[]
+  waypoints: Waypoint[],
 ): Promise<RouteOptimizationResult> => {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error('API Key missing');
+    throw new Error("API Key missing");
   }
 
   try {
@@ -114,10 +138,10 @@ export const optimizeRoute = async (
     }));
 
     const payload = {
-      startName: start.name || 'Start Point',
+      startName: start.name || "Start Point",
       startX: start.longitude.toFixed(8),
       startY: start.latitude.toFixed(8),
-      endName: end.name || 'End Point',
+      endName: end.name || "End Point",
       endX: end.longitude.toFixed(8),
       endY: end.latitude.toFixed(8),
       viaPoints: viaPoints,
@@ -129,29 +153,31 @@ export const optimizeRoute = async (
       {
         headers: {
           appKey: apiKey,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
-      }
+      },
     );
 
     const features = response.data?.features;
     if (!features || features.length === 0) {
-      throw new Error('No features returned from Tmap route optimization');
+      throw new Error("No features returned from Tmap route optimization");
     }
 
     // Extract summary properties (distance & duration)
     // The first feature's properties typically contain aggregate metrics
     const properties = features[0]?.properties || {};
     const totalDistanceMeters = parseFloat(properties.totalDistance || 0);
-    const totalDurationSeconds = parseFloat(properties.totalTime || properties.totalDuration || 0);
+    const totalDurationSeconds = parseFloat(
+      properties.totalTime || properties.totalDuration || 0,
+    );
 
     const totalDistanceKm = totalDistanceMeters / 1000;
     const totalDurationMin = totalDurationSeconds / 60;
 
     // Parse coordinates from LineString features
     const polylineCoords: { latitude: number; longitude: number }[] = [];
-    
+
     // Track viaPointIds ordered by their optimized index
     const optimizedPoints: { id: string; index: number }[] = [];
 
@@ -159,21 +185,22 @@ export const optimizeRoute = async (
       const geometry = feature.geometry;
       const props = feature.properties || {};
 
-      if (geometry?.type === 'LineString') {
+      if (geometry?.type === "LineString") {
         const coords = geometry.coordinates;
         if (Array.isArray(coords)) {
           for (const coord of coords) {
             // GeoJSON coordinates order: [longitude, latitude]
             const lon = coord[0];
             const lat = coord[1];
-            if (typeof lat === 'number' && typeof lon === 'number') {
+            if (typeof lat === "number" && typeof lon === "number") {
               polylineCoords.push({ latitude: lat, longitude: lon });
             }
           }
         }
-      } else if (geometry?.type === 'Point' && props.viaPointId) {
+      } else if (geometry?.type === "Point" && props.viaPointId) {
         // Collect waypoint indices
-        const indexVal = props.index !== undefined ? parseInt(props.index, 10) : -1;
+        const indexVal =
+          props.index !== undefined ? parseInt(props.index, 10) : -1;
         optimizedPoints.push({
           id: props.viaPointId,
           index: indexVal,
@@ -192,11 +219,14 @@ export const optimizeRoute = async (
       optimizedWaypointIds,
     };
   } catch (error: any) {
-    console.error('Error in optimizeRoute:', error?.response?.data || error.message);
+    console.error(
+      "Error in optimizeRoute:",
+      error?.response?.data || error.message,
+    );
     throw new Error(
-      error?.response?.data?.error?.message || 
-      error.message || 
-      'Route optimization request failed'
+      error?.response?.data?.error?.message ||
+        error.message ||
+        "Route optimization request failed",
     );
   }
 };
