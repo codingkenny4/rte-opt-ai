@@ -107,7 +107,8 @@ export const searchPlaceSuggestions = async (
 
         return {
           name: poi?.name || address || normalizedKeyword,
-          address: typeof address === "string" ? address : String(address || ""),
+          address:
+            typeof address === "string" ? address : String(address || ""),
           latitude: parseFloat(lat),
           longitude: parseFloat(lon),
         } as PlaceSuggestion;
