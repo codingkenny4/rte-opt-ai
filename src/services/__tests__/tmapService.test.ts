@@ -1,7 +1,7 @@
 /// <reference types="jest" />
 
 import axios from "axios";
-import { validateAddressExists } from "../tmapService";
+import { searchPlaceSuggestions, validateAddressExists } from "../tmapService";
 
 jest.mock("axios");
 
@@ -40,5 +40,40 @@ describe("validateAddressExists", () => {
     await expect(
       validateAddressExists("Definitely not a real address"),
     ).resolves.toBe(false);
+  });
+
+  it("returns TMAP place suggestions for generic location names", async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        searchPoiInfo: {
+          pois: {
+            poi: [
+              {
+                name: "Costco",
+                newAddressList: { newAddress: "123 Example Street" },
+                frontLat: "37.5665",
+                frontLon: "126.9780",
+              },
+            ],
+          },
+        },
+      },
+    } as never);
+
+    await expect(searchPlaceSuggestions("Costco")).resolves.toEqual([
+      {
+        name: "Costco",
+        address: "123 Example Street",
+        latitude: 37.5665,
+        longitude: 126.978,
+      },
+    ]);
+
+    expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect.stringContaining("/pois"),
+      expect.objectContaining({
+        params: expect.objectContaining({ searchKeyword: "Costco" }),
+      }),
+    );
   });
 });

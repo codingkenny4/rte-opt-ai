@@ -19,6 +19,13 @@ export interface GeocodeResult {
   longitude: number;
 }
 
+export interface PlaceSuggestion {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface Waypoint {
   id: string;
   name: string;
@@ -48,6 +55,74 @@ export const validateAddressExists = async (
     return true;
   } catch {
     return false;
+  }
+};
+
+export const searchPlaceSuggestions = async (
+  keyword: string,
+  limit = 5,
+): Promise<PlaceSuggestion[]> => {
+  const normalizedKeyword = keyword?.trim();
+  if (!normalizedKeyword) return [];
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("API Key missing");
+  }
+
+  try {
+    const response = await axios.get(`${TMAP_API_BASE}/pois`, {
+      params: {
+        version: 1,
+        format: "json",
+        searchKeyword: normalizedKeyword,
+        resCoordType: "WGS84GEO",
+        reqCoordType: "WGS84GEO",
+        count: limit,
+      },
+      headers: {
+        appKey: apiKey,
+        Accept: "application/json",
+      },
+    });
+
+    const pois = response.data?.searchPoiInfo?.pois?.poi;
+    if (!Array.isArray(pois)) {
+      return [];
+    }
+
+    return pois
+      .map((poi: any) => {
+        const address =
+          poi?.newAddressList?.newAddress ||
+          poi?.address ||
+          poi?.roadAddress ||
+          "";
+        const lat = poi?.frontLat || poi?.noorLat;
+        const lon = poi?.frontLon || poi?.noorLon;
+
+        if (!lat || !lon) {
+          return null;
+        }
+
+        return {
+          name: poi?.name || address || normalizedKeyword,
+          address: typeof address === "string" ? address : String(address || ""),
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lon),
+        } as PlaceSuggestion;
+      })
+      .filter(Boolean) as PlaceSuggestion[];
+  } catch (error: any) {
+    console.error(
+      "Error in searchPlaceSuggestions:",
+      error?.response?.data || error.message,
+    );
+    throw new Error(
+      error?.response?.data?.error?.message ||
+        error.message ||
+        "Place suggestion request failed",
+    );
   }
 };
 
