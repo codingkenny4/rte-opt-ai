@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 interface SavedAddressListProps {
   title: string;
@@ -37,10 +37,15 @@ export const SavedAddressList: React.FC<SavedAddressListProps> = ({
                 className="flex-row items-center"
                 accessibilityRole="button"
               >
-                <Text className="text-slate-300 text-xs font-medium mr-2" numberOfLines={1}>
+                <Text
+                  className="text-slate-300 text-xs font-medium mr-2"
+                  numberOfLines={1}
+                >
                   {address}
                 </Text>
-                <Text className="text-brand-indigo text-[11px] font-semibold">Use</Text>
+                <Text className="text-brand-indigo text-[11px] font-semibold">
+                  Use
+                </Text>
               </TouchableOpacity>
             </View>
           ))}

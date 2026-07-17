@@ -18,7 +18,6 @@
     "optimizeSuccess": "경로가 성공적으로 최적화되었습니다!",
     "optimizeError": "경로 최적화에 실패했습니다. 입력을 확인해주세요.",
     "geocodeError": "해당 주소의 좌표를 찾을 수 없습니다.",
-    "invalidAddressError": "지도에서 찾을 수 있는 실제 주소를 입력해주세요.",
     "minWaypointsError": "출발지와 도착지를 먼저 입력해주세요.",
     "clearAll": "전체 초기화",
     "stops": "경유지 목록",

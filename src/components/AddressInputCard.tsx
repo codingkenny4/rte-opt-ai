@@ -1,9 +1,5 @@
 import { SavedAddressList } from "@/components/SavedAddressList";
-import {
-    PlaceSuggestion,
-    searchPlaceSuggestions,
-} from "@/services/tmapService";
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 
@@ -37,71 +33,12 @@ export const AddressInputCard: React.FC<AddressInputCardProps> = ({
   headerRight,
 }) => {
   const { t } = useTranslation();
-  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const requestIdRef = useRef(0);
 
   const accentClasses = {
     green: "text-brand-emerald",
     red: "text-red-500",
     indigo: "text-brand-indigo",
   } as const;
-
-  useEffect(() => {
-    if (!value?.trim()) {
-      setSuggestions([]);
-      setIsSearching(false);
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-      return;
-    }
-
-    if (value.trim().length < 2) {
-      setSuggestions([]);
-      return;
-    }
-
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-
-    timerRef.current = setTimeout(async () => {
-      const query = value.trim();
-      const currentRequestId = ++requestIdRef.current;
-      setIsSearching(true);
-
-      try {
-        const results = await searchPlaceSuggestions(query, 5);
-        if (currentRequestId === requestIdRef.current) {
-          setSuggestions(results);
-        }
-      } catch (error) {
-        if (currentRequestId === requestIdRef.current) {
-          setSuggestions([]);
-        }
-      } finally {
-        if (currentRequestId === requestIdRef.current) {
-          setIsSearching(false);
-        }
-      }
-    }, 250);
-
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [value]);
-
-  const handleSelectSuggestion = (suggestion: PlaceSuggestion) => {
-    const selectedText = suggestion.address || suggestion.name;
-    setSuggestions([]);
-    setIsSearching(false);
-    onChangeText(selectedText);
-    setTimeout(() => onResolve(), 0);
-  };
 
   return (
     <View className="mb-4">
@@ -138,31 +75,6 @@ export const AddressInputCard: React.FC<AddressInputCardProps> = ({
           <Text className="text-brand-indigo text-xs font-bold">🔍</Text>
         </TouchableOpacity>
       </View>
-
-      {suggestions.length > 0 && (
-        <View className="mt-2 rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
-          {suggestions.map((suggestion) => (
-            <TouchableOpacity
-              key={`${suggestion.name}-${suggestion.address}`}
-              onPress={() => handleSelectSuggestion(suggestion)}
-              className="px-3 py-3 border-b border-slate-800 last:border-b-0"
-            >
-              <Text className="text-white text-sm font-semibold">
-                {suggestion.name}
-              </Text>
-              <Text className="text-slate-400 text-xs mt-1">
-                {suggestion.address}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {!suggestions.length && isSearching && (
-        <View className="mt-2 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950">
-          <Text className="text-slate-400 text-xs">Searching…</Text>
-        </View>
-      )}
 
       {showSavedAddresses && !!savedAddresses.length && (
         <SavedAddressList

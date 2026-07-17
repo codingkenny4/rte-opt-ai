@@ -74,9 +74,8 @@ export const WaypointPanel: React.FC<WaypointPanelProps> = ({
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
-      className="w-full bg-slate-900 border-t border-slate-800 rounded-t-[32px] shadow-2xl overflow-hidden"
-      style={{ borderTopWidth: 1, maxHeight: "82%" }}
+      className="bg-slate-900 border-t border-slate-800 rounded-t-[32px] shadow-2xl flex-1 max-h-[500] md:max-h-full"
+      style={{ borderTopWidth: 1 }}
     >
       {/* Top drag handle indicator */}
       <View className="items-center py-3">
@@ -85,9 +84,8 @@ export const WaypointPanel: React.FC<WaypointPanelProps> = ({
 
       <ScrollView
         className="px-6 flex-1"
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
       >
         {/* Title & Clear Action */}
         <View className="flex-row justify-between items-center mb-4">
