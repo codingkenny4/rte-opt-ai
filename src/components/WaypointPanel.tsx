@@ -43,6 +43,8 @@ interface WaypointPanelProps {
   onSelectEndSavedAddress: (address: string) => void;
   onSelectWaypointSavedAddress: (address: string) => void;
   onRemoveSavedAddress: (address: string) => void;
+  onAddWaypointWithAddress: (address: string) => void;
+  onClosePanel?: () => void;
 }
 
 export const WaypointPanel: React.FC<WaypointPanelProps> = ({
@@ -68,8 +70,12 @@ export const WaypointPanel: React.FC<WaypointPanelProps> = ({
   onSelectEndSavedAddress,
   onSelectWaypointSavedAddress,
   onRemoveSavedAddress,
+  onAddWaypointWithAddress,
+  onClosePanel,
 }) => {
   const { t } = useTranslation();
+  const [isAddingWaypoint, setIsAddingWaypoint] = React.useState(false);
+  const [newWaypointAddress, setNewWaypointAddress] = React.useState("");
 
   return (
     <KeyboardAvoidingView
@@ -87,22 +93,37 @@ export const WaypointPanel: React.FC<WaypointPanelProps> = ({
         contentContainerStyle={{ paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title & Clear Action */}
+        {/* Title & Actions */}
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-white text-lg font-bold tracking-tight">
             {t("title")}
           </Text>
-          <TouchableOpacity
-            onPress={onClearAll}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 active:bg-slate-700 min-h-[44] items-center justify-center"
-            style={{ minHeight: 44 }}
-            accessibilityLabel={t("clearAll")}
-            accessibilityRole="button"
-          >
-            <Text className="text-slate-400 text-xs font-semibold">
-              {t("clearAll")}
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row items-center">
+            {onClosePanel && (
+              <TouchableOpacity
+                onPress={onClosePanel}
+                className="px-3 py-1.5 rounded-lg bg-slate-800/60 active:bg-slate-700 mr-2 items-center justify-center"
+                style={{ minHeight: 44 }}
+                accessibilityLabel={t("hidePanel")}
+                accessibilityRole="button"
+              >
+                <Text className="text-slate-300 text-xs font-semibold">
+                  Hide
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={onClearAll}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 active:bg-slate-700 min-h-[44] items-center justify-center"
+              style={{ minHeight: 44 }}
+              accessibilityLabel={t("clearAll")}
+              accessibilityRole="button"
+            >
+              <Text className="text-slate-400 text-xs font-semibold">
+                {t("clearAll")}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Start Point Input */}
@@ -152,19 +173,57 @@ export const WaypointPanel: React.FC<WaypointPanelProps> = ({
           </View>
         ))}
 
-        {/* Add Waypoint Button */}
-        <TouchableOpacity
-          onPress={onAddWaypoint}
-          className="flex-row items-center justify-center border border-dashed border-slate-700 bg-slate-950/40 rounded-xl p-3 mb-4 min-h-[48]"
-          style={{ minHeight: 48 }}
-          accessibilityLabel={t("addWaypoint")}
-          accessibilityRole="button"
-        >
-          <Text className="text-slate-400 font-semibold text-sm mr-2">➕</Text>
-          <Text className="text-slate-300 font-semibold text-sm">
-            {t("addWaypoint")}
-          </Text>
-        </TouchableOpacity>
+        {/* Add Waypoint Button / Single Add Input */}
+        {!isAddingWaypoint ? (
+          <TouchableOpacity
+            onPress={() => setIsAddingWaypoint(true)}
+            className="flex-row items-center justify-center border border-dashed border-slate-700 bg-slate-950/40 rounded-xl p-3 mb-4 min-h-[48]"
+            style={{ minHeight: 48 }}
+            accessibilityLabel={t("addWaypoint")}
+            accessibilityRole="button"
+          >
+            <Text className="text-slate-400 font-semibold text-sm mr-2">
+              ➕
+            </Text>
+            <Text className="text-slate-300 font-semibold text-sm">
+              {t("addWaypoint")}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View className="mb-4">
+            <AddressInputCard
+              label={`📍 ${t("addWaypoint")}`}
+              value={newWaypointAddress}
+              onChangeText={setNewWaypointAddress}
+              onResolve={async () => {
+                const normalized = newWaypointAddress.trim();
+                if (!normalized) return;
+                onAddWaypointWithAddress(normalized);
+                setNewWaypointAddress("");
+                setIsAddingWaypoint(false);
+              }}
+              resolved={false}
+              placeholder={t("enterWaypoint", { index: 1 })}
+              accentColor="indigo"
+              savedAddresses={savedAddresses}
+              showSavedAddresses
+              onSelectSavedAddress={(address) => setNewWaypointAddress(address)}
+              onRemoveSavedAddress={onRemoveSavedAddress}
+              headerRight={
+                <TouchableOpacity
+                  onPress={() => {
+                    setNewWaypointAddress("");
+                    setIsAddingWaypoint(false);
+                  }}
+                  className="px-3 py-1 rounded-lg bg-slate-800 items-center justify-center ml-2"
+                  style={{ minHeight: 44 }}
+                >
+                  <Text className="text-slate-400 text-xs">Cancel</Text>
+                </TouchableOpacity>
+              }
+            />
+          </View>
+        )}
 
         {/* End Point Input */}
         <AddressInputCard

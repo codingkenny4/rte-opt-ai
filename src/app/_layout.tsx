@@ -34,7 +34,7 @@ i18n.use(initReactI18next).init({
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <View className="flex-1 bg-slate-950">
+      <View className="flex-1 bg-slate-950" style={{ minHeight: "100vh" }}>
         <StatusBar style="light" />
         <Slot />
       </View>

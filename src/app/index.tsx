@@ -7,9 +7,10 @@ import {
   Waypoint,
 } from "@/services/tmapService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Platform, View } from "react-native";
+import { Alert, Platform, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface WaypointItem {
@@ -56,6 +57,12 @@ export default function HomeScreen() {
     totalDurationMin: number;
   } | null>(null);
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
+  const [savedWaypoints, setSavedWaypoints] = useState<Waypoint[]>([]);
+  const [currentLocation, setCurrentLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [panelOpen, setPanelOpen] = useState(true);
 
   useEffect(() => {
     const loadSavedAddresses = async () => {
@@ -79,6 +86,64 @@ export default function HomeScreen() {
 
     loadSavedAddresses();
   }, []);
+
+  useEffect(() => {
+    const loadCurrentLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        setCurrentLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      } catch (error) {
+        console.warn("Failed to load current location", error);
+      }
+    };
+
+    loadCurrentLocation();
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSavedWaypointCoords = async () => {
+      if (!savedAddresses.length) {
+        setSavedWaypoints([]);
+        return;
+      }
+
+      const waypointPromises = savedAddresses.map(async (address, index) => {
+        try {
+          const result = await geocodeAddress(address);
+          return {
+            id: `saved-${index}-${address}`,
+            name: result.address || address,
+            address,
+            latitude: result.latitude,
+            longitude: result.longitude,
+          } as Waypoint;
+        } catch {
+          return null;
+        }
+      });
+
+      const results = await Promise.all(waypointPromises);
+      if (isMounted) {
+        setSavedWaypoints(results.filter((item): item is Waypoint => !!item));
+      }
+    };
+
+    loadSavedWaypointCoords();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [savedAddresses]);
 
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === "web") {
@@ -202,6 +267,27 @@ export default function HomeScreen() {
       ...prev,
       { id: newId, address: "", resolved: false, latitude: 0, longitude: 0 },
     ]);
+  };
+
+  const handleAddWaypointWithAddress = async (address: string) => {
+    const normalized = address.trim();
+    if (!normalized) return;
+    addSavedAddress(normalized);
+
+    try {
+      const res = await geocodeAddress(normalized);
+      const newId = Math.random().toString(36).substring(2, 9);
+      const newWp: WaypointItem = {
+        id: newId,
+        address: normalized,
+        resolved: true,
+        latitude: res.latitude,
+        longitude: res.longitude,
+      };
+      setWaypoints((prev) => [...prev, newWp]);
+    } catch (error: any) {
+      showAlert(t("title"), `${t("geocodeError")}: ${error.message}`);
+    }
   };
 
   // Remove waypoint row
@@ -358,7 +444,10 @@ export default function HomeScreen() {
     }));
 
   return (
-    <View className="flex-1 bg-slate-950 relative">
+    <View
+      className="flex-1 min-h-screen bg-slate-950 relative"
+      style={{ minHeight: "100vh" }}
+    >
       {/* Background Interactive Map */}
       <View className="absolute inset-0">
         <MapViewport
@@ -366,6 +455,8 @@ export default function HomeScreen() {
           end={endCoords}
           waypoints={activeWaypointsList}
           polylineCoords={polylineCoords}
+          savedWaypoints={savedWaypoints}
+          currentLocation={currentLocation}
         />
       </View>
 
@@ -377,32 +468,67 @@ export default function HomeScreen() {
       </SafeAreaView>
 
       {/* Bottom Sheet Control Panel Overlay */}
-      <View className="absolute bottom-0 left-0 right-0 z-10 max-h-[75%] md:max-h-[50%]">
-        <WaypointPanel
-          startAddress={startAddress}
-          setStartAddress={setStartAddress}
-          startResolved={startResolved}
-          onResolveStart={handleResolveStart}
-          endAddress={endAddress}
-          setEndAddress={setEndAddress}
-          endResolved={endResolved}
-          onResolveEnd={handleResolveEnd}
-          waypoints={waypoints}
-          onChangeWaypointAddress={handleChangeWaypointAddress}
-          onResolveWaypoint={handleResolveWaypoint}
-          onAddWaypoint={handleAddWaypoint}
-          onRemoveWaypoint={handleRemoveWaypoint}
-          onClearAll={handleClearAll}
-          onOptimize={handleOptimize}
-          isOptimizing={isOptimizing}
-          optimizeResult={optimizeResult}
-          savedAddresses={savedAddresses}
-          onSelectStartSavedAddress={(address) => setStartAddress(address)}
-          onSelectEndSavedAddress={(address) => setEndAddress(address)}
-          onSelectWaypointSavedAddress={() => undefined}
-          onRemoveSavedAddress={removeSavedAddress}
-        />
-      </View>
+      {panelOpen ? (
+        <View
+          className="absolute bottom-0 left-0 right-0 z-10 h-[75%] md:h-[50%]"
+          style={{ minHeight: 420 }}
+        >
+          <WaypointPanel
+            startAddress={startAddress}
+            setStartAddress={setStartAddress}
+            startResolved={startResolved}
+            onResolveStart={handleResolveStart}
+            endAddress={endAddress}
+            setEndAddress={setEndAddress}
+            endResolved={endResolved}
+            onResolveEnd={handleResolveEnd}
+            waypoints={waypoints}
+            onChangeWaypointAddress={handleChangeWaypointAddress}
+            onResolveWaypoint={handleResolveWaypoint}
+            onAddWaypoint={handleAddWaypoint}
+            onRemoveWaypoint={handleRemoveWaypoint}
+            onAddWaypointWithAddress={handleAddWaypointWithAddress}
+            onClearAll={handleClearAll}
+            onOptimize={handleOptimize}
+            isOptimizing={isOptimizing}
+            optimizeResult={optimizeResult}
+            savedAddresses={savedAddresses}
+            onSelectStartSavedAddress={(address) => setStartAddress(address)}
+            onSelectEndSavedAddress={(address) => setEndAddress(address)}
+            onSelectWaypointSavedAddress={() => undefined}
+            onRemoveSavedAddress={removeSavedAddress}
+            onClosePanel={() => setPanelOpen(false)}
+          />
+        </View>
+      ) : (
+        <SafeAreaView
+          style={{
+            position: "absolute",
+            bottom: 24,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+            zIndex: 30,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => setPanelOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Show panel"
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: "#6366f1",
+              alignItems: "center",
+              justifyContent: "center",
+              elevation: 6,
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "700" }}>▲</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      )}
     </View>
   );
 }

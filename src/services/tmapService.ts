@@ -311,17 +311,17 @@ export const buildRouteOptimizationPayload = (
   const viaPoints = waypoints.map((wp) => ({
     viaPointId: wp.id,
     viaPointName: `Stop-${wp.id}`,
-    viaX: wp.longitude.toFixed(8),
-    viaY: wp.latitude.toFixed(8),
+    viaX: Number(wp.longitude.toFixed(8)),
+    viaY: Number(wp.latitude.toFixed(8)),
   }));
 
   return {
     startName: "Start Point",
-    startX: start.longitude.toFixed(8),
-    startY: start.latitude.toFixed(8),
+    startX: Number(start.longitude.toFixed(8)),
+    startY: Number(start.latitude.toFixed(8)),
     endName: "End Point",
-    endX: end.longitude.toFixed(8),
-    endY: end.latitude.toFixed(8),
+    endX: Number(end.longitude.toFixed(8)),
+    endY: Number(end.latitude.toFixed(8)),
     viaPoints,
     searchOption: "0",
     routeOption: "0",
@@ -376,6 +376,9 @@ export const optimizeRoute = async (
     // Use neutral route labels so TMAP does not reject the request when the UI
     // passes full addresses or place names as start/end labels.
     const payload = buildRouteOptimizationPayload(start, end, waypoints);
+
+    // Debug: log payload to help diagnose missing parameter errors from Tmap
+    console.debug && console.debug("Route optimization payload:", payload);
 
     const response = await axios.post(
       `${TMAP_API_BASE}/routes/routeOptimization100?version=1`,
