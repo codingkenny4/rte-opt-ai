@@ -1,14 +1,16 @@
 import { AddressInputCard } from "@/components/AddressInputCard";
+import { DraggableWaypointItem } from "@/components/DraggableWaypointItem";
+import { SavedAddress } from "@/types/savedAddress";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface WaypointItem {
@@ -33,12 +35,13 @@ interface WaypointPanelProps {
   onResolveWaypoint: (id: string) => Promise<void>;
   onAddWaypoint: () => void;
   onRemoveWaypoint: (id: string) => void;
+  onReorderWaypoints: (fromIndex: number, toIndex: number) => void;
 
   onClearAll: () => void;
   onOptimize: () => void;
   isOptimizing: boolean;
   optimizeResult: { totalDistanceKm: number; totalDurationMin: number } | null;
-  savedAddresses: string[];
+  savedAddresses: SavedAddress[];
   onSelectStartSavedAddress: (address: string) => void;
   onSelectEndSavedAddress: (address: string) => void;
   onSelectWaypointSavedAddress: (address: string) => void;
@@ -61,6 +64,7 @@ export const WaypointPanel: React.FC<WaypointPanelProps> = ({
   onResolveWaypoint,
   onAddWaypoint,
   onRemoveWaypoint,
+  onReorderWaypoints,
   onClearAll,
   onOptimize,
   isOptimizing,
@@ -141,37 +145,34 @@ export const WaypointPanel: React.FC<WaypointPanelProps> = ({
           onRemoveSavedAddress={onRemoveSavedAddress}
         />
 
-        {/* Dynamic Waypoints list */}
-        {waypoints.map((wp, idx) => (
-          <View key={wp.id} className="mb-4">
-            <AddressInputCard
-              label={`📍 ${t("addWaypoint")} ${idx + 1}`}
-              value={wp.address}
-              onChangeText={(text) => onChangeWaypointAddress(wp.id, text)}
-              onResolve={() => onResolveWaypoint(wp.id)}
-              resolved={wp.resolved}
-              placeholder={t("enterWaypoint", { index: idx + 1 })}
-              accentColor="indigo"
-              savedAddresses={savedAddresses}
-              showSavedAddresses
-              onSelectSavedAddress={(address) => {
-                onSelectWaypointSavedAddress(address);
-                onChangeWaypointAddress(wp.id, address);
-              }}
-              onRemoveSavedAddress={onRemoveSavedAddress}
-              headerRight={
-                <TouchableOpacity
-                  onPress={() => onRemoveWaypoint(wp.id)}
-                  className="bg-red-500/10 active:bg-red-500/20 px-3 py-1.5 rounded-lg min-h-[44] items-center justify-center"
-                  style={{ minHeight: 44 }}
-                  accessibilityLabel={`Delete Waypoint ${idx + 1}`}
-                >
-                  <Text className="text-red-500 text-xs font-bold">❌</Text>
-                </TouchableOpacity>
-              }
-            />
+        {/* Dynamic Waypoints list with drag-to-reorder */}
+        {waypoints.length > 0 && (
+          <View className="mb-2">
+            <Text className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-2">
+              📍 Waypoints (drag to reorder)
+            </Text>
+            {waypoints.map((wp, idx) => (
+              <DraggableWaypointItem
+                key={wp.id}
+                id={wp.id}
+                index={idx}
+                address={wp.address}
+                resolved={wp.resolved}
+                onChangeAddress={onChangeWaypointAddress}
+                onResolve={onResolveWaypoint}
+                onRemove={onRemoveWaypoint}
+                savedAddresses={savedAddresses}
+                onSelectSavedAddress={(address) => {
+                  onSelectWaypointSavedAddress(address);
+                  onChangeWaypointAddress(wp.id, address);
+                }}
+                onRemoveSavedAddress={onRemoveSavedAddress}
+                onReorder={onReorderWaypoints}
+                totalWaypoints={waypoints.length}
+              />
+            ))}
           </View>
-        ))}
+        )}
 
         {/* Add Waypoint Button / Single Add Input */}
         {!isAddingWaypoint ? (

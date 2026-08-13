@@ -2,10 +2,15 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { MapViewport } from "@/components/MapViewport";
 import { WaypointPanel } from "@/components/WaypointPanel";
 import {
-  geocodeAddress,
-  optimizeRoute,
-  Waypoint,
+    geocodeAddress,
+    optimizeRoute,
+    Waypoint,
 } from "@/services/tmapService";
+import {
+    DEFAULT_CATEGORY,
+    migrateSavedAddresses,
+    SavedAddress,
+} from "@/types/savedAddress";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
@@ -56,7 +61,7 @@ export default function HomeScreen() {
     totalDistanceKm: number;
     totalDurationMin: number;
   } | null>(null);
-  const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [savedWaypoints, setSavedWaypoints] = useState<Waypoint[]>([]);
   const [currentLocation, setCurrentLocation] = useState<{
     latitude: number;
@@ -71,14 +76,8 @@ export default function HomeScreen() {
         if (!stored) return;
 
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setSavedAddresses(
-            parsed.filter(
-              (item): item is string =>
-                typeof item === "string" && item.trim().length > 0,
-            ),
-          );
-        }
+        const migrated = migrateSavedAddresses(parsed);
+        setSavedAddresses(migrated);
       } catch (error) {
         console.warn("Failed to load saved addresses", error);
       }
@@ -117,13 +116,13 @@ export default function HomeScreen() {
         return;
       }
 
-      const waypointPromises = savedAddresses.map(async (address, index) => {
+      const waypointPromises = savedAddresses.map(async (item, index) => {
         try {
-          const result = await geocodeAddress(address);
+          const result = await geocodeAddress(item.address);
           return {
-            id: `saved-${index}-${address}`,
-            name: result.address || address,
-            address,
+            id: `saved-${index}-${item.address}`,
+            name: result.address || item.address,
+            address: item.address,
             latitude: result.latitude,
             longitude: result.longitude,
           } as Waypoint;
@@ -153,7 +152,7 @@ export default function HomeScreen() {
     }
   };
 
-  const persistSavedAddresses = async (nextAddresses: string[]) => {
+  const persistSavedAddresses = async (nextAddresses: SavedAddress[]) => {
     try {
       await AsyncStorage.setItem(
         SAVED_ADDRESSES_KEY,
@@ -164,16 +163,21 @@ export default function HomeScreen() {
     }
   };
 
-  const addSavedAddress = (address: string) => {
+  const addSavedAddress = (address: string, category: string = DEFAULT_CATEGORY) => {
     const normalized = address.trim();
     if (!normalized) return;
 
     setSavedAddresses((prev) => {
+      const filtered = prev.filter(
+        (item) => item.address.toLowerCase() !== normalized.toLowerCase(),
+      );
       const next = [
-        normalized,
-        ...prev.filter(
-          (item) => item.toLowerCase() !== normalized.toLowerCase(),
-        ),
+        {
+          address: normalized,
+          category,
+          timestamp: Date.now(),
+        },
+        ...filtered,
       ].slice(0, 8);
       persistSavedAddresses(next);
       return next;
@@ -182,7 +186,7 @@ export default function HomeScreen() {
 
   const removeSavedAddress = (address: string) => {
     setSavedAddresses((prev) => {
-      const next = prev.filter((item) => item !== address);
+      const next = prev.filter((item) => item.address !== address);
       persistSavedAddresses(next);
       return next;
     });
@@ -302,6 +306,16 @@ export default function HomeScreen() {
         w.id === id ? { ...w, address: text, resolved: false } : w,
       ),
     );
+  };
+
+  // Reorder waypoints when dragging
+  const handleReorderWaypoints = (fromIndex: number, toIndex: number) => {
+    setWaypoints((prev) => {
+      const newList = [...prev];
+      const [removed] = newList.splice(fromIndex, 1);
+      newList.splice(toIndex, 0, removed);
+      return newList;
+    });
   };
 
   // Clear all form inputs and route drawings
@@ -487,6 +501,7 @@ export default function HomeScreen() {
             onResolveWaypoint={handleResolveWaypoint}
             onAddWaypoint={handleAddWaypoint}
             onRemoveWaypoint={handleRemoveWaypoint}
+            onReorderWaypoints={handleReorderWaypoints}
             onAddWaypointWithAddress={handleAddWaypointWithAddress}
             onClearAll={handleClearAll}
             onOptimize={handleOptimize}

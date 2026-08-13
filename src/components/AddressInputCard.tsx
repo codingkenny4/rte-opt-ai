@@ -1,4 +1,5 @@
 import { SavedAddressList } from "@/components/SavedAddressList";
+import { SavedAddress } from "@/types/savedAddress";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -12,7 +13,7 @@ interface AddressInputCardProps {
   placeholder: string;
   accentColor?: "green" | "red" | "indigo";
   showSavedAddresses?: boolean;
-  savedAddresses?: string[];
+  savedAddresses?: SavedAddress[];
   onSelectSavedAddress?: (address: string) => void;
   onRemoveSavedAddress?: (address: string) => void;
   headerRight?: React.ReactNode;
